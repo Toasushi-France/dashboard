@@ -416,6 +416,7 @@ async function loadData(){
     console.log('[TOA] CSV received, length:',text.length);
     RAW_DATA=parseCSV(text);
     console.log('[TOA] Parsed rows:',RAW_DATA.length);
+    if(RAW_DATA.length>0){console.log('[TOA] Headers:',Object.keys(RAW_DATA[0]));console.log('[TOA] Row 0:',JSON.stringify(RAW_DATA[0]));console.log('[TOA] Spend key test:',RAW_DATA[0]['Coût (EUR)'],'|',RAW_DATA[0]['Co\u00fbt (EUR)']);}
     RAW_DATA.forEach(r=>{
       r._date=parseDate(r['Date']);
       r._spend=pN(r['Co\u00fbt (EUR)']);
