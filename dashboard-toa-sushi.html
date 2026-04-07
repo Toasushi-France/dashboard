@@ -230,7 +230,7 @@ tbody tr:hover{background:var(--card-hover)}
   </nav>
   <div class="sidebar-footer">
     <div class="agency">TOA Sushi &copy; 2026</div>
-    <a href="portail-toa-sushi.html" style="display:block;margin-top:8px;font-size:11px;color:var(--text2);text-decoration:none;transition:color .2s">&larr; Retour au portail</a>
+    <a href="index.html" style="display:block;margin-top:8px;font-size:11px;color:var(--text2);text-decoration:none;transition:color .2s">&larr; Retour au portail</a>
   </div>
 </aside>
 
@@ -847,8 +847,8 @@ function renderOverview(){
 
   // Campaign table
   renderSortableTable('tableCampaigns',
-    [{key:'name',label:'Campagne'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'clicks',label:'Clics',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>'}],
-    aggByCampaign(FILTERED).map(c=>({name:c.name,spend:c.spend,impressions:c.impressions,clicks:c.clicks,ctr:c.impressions?(c.clicks/c.impressions*100):0,leads:c.leads,cpl:c.leads?(c.spend/c.leads):9999})),
+    [{key:'name',label:'Campagne'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'clicks',label:'Clics',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>v>0?'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>':'\u2014'}],
+    aggByCampaign(FILTERED).map(c=>({name:c.name,spend:c.spend,impressions:c.impressions,clicks:c.clicks,ctr:c.impressions?(c.clicks/c.impressions*100):0,leads:c.leads,cpl:c.leads?(c.spend/c.leads):0})),
     'spend',true
   );
 }
@@ -915,7 +915,7 @@ function renderEvolution(){
       labels,
       datasets:[
         {label:'D\u00e9penses (\u20AC)',data:monthly.map(m=>m.spend),backgroundColor:'rgba(61,122,53,0.5)',borderRadius:4,yAxisID:'y',order:2},
-        {label:'Leads',data:monthly.map(m=>m.leads),backgroundColor:'rgba(212,168,83,0.5)',borderRadius:4,yAxisID:'y',order:3},
+        {label:'Leads',data:monthly.map(m=>m.leads),backgroundColor:'rgba(212,168,83,0.7)',borderRadius:4,yAxisID:'y2',order:3},
         {label:'CPL (\u20AC)',data:monthly.map(m=>m.leads?m.spend/m.leads:0),type:'line',borderColor:'#e05555',backgroundColor:'rgba(224,85,85,0.1)',pointRadius:4,pointHoverRadius:6,borderWidth:2,tension:0.3,yAxisID:'y1',order:1}
       ]
     },
@@ -923,7 +923,11 @@ function renderEvolution(){
       responsive:true,maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
       plugins:{legend:{position:'top'}},
-      scales:{y:{position:'left',title:{display:true,text:'Valeur'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'CPL (\u20AC)'}}}
+      scales:{
+        y:{position:'left',title:{display:true,text:'D\u00e9penses (\u20AC)'},beginAtZero:true},
+        y2:{position:'left',display:false,beginAtZero:true},
+        y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'CPL (\u20AC)'},beginAtZero:true}
+      }
     }
   });
 
@@ -949,7 +953,7 @@ function renderEvolution(){
 
   // Monthly table
   renderSortableTable('tableMonthly',
-    [{key:'month',label:'Mois'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>'},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)}],
+    [{key:'month',label:'Mois'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>v>0?'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>':'\u2014'},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)}],
     monthly.map(m=>({month:labels[monthly.indexOf(m)],spend:m.spend,leads:m.leads,cpl:m.leads?m.spend/m.leads:0,impressions:m.impressions,ctr:m.impressions?(m.clicks/m.impressions*100):0})),
     'month',false
   );
