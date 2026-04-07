@@ -914,9 +914,9 @@ function renderEvolution(){
     data:{
       labels,
       datasets:[
-        {label:'D\u00e9penses (\u20AC)',data:monthly.map(m=>m.spend),backgroundColor:'rgba(61,122,53,0.5)',borderRadius:4,yAxisID:'y',order:2},
-        {label:'Leads',data:monthly.map(m=>m.leads),backgroundColor:'rgba(212,168,83,0.7)',borderRadius:4,yAxisID:'y2',order:3},
-        {label:'CPL (\u20AC)',data:monthly.map(m=>m.leads?m.spend/m.leads:0),type:'line',borderColor:'#e05555',backgroundColor:'rgba(224,85,85,0.1)',pointRadius:4,pointHoverRadius:6,borderWidth:2,tension:0.3,yAxisID:'y1',order:1}
+        {label:'D\u00e9penses (\u20AC)',data:monthly.map(m=>m.spend),backgroundColor:'rgba(61,122,53,0.5)',borderRadius:4,yAxisID:'y',order:3},
+        {label:'Leads',data:monthly.map(m=>m.leads),type:'line',borderColor:'#D4A853',backgroundColor:'rgba(212,168,83,0.1)',pointRadius:5,pointHoverRadius:7,pointBackgroundColor:'#D4A853',borderWidth:2.5,tension:0.3,yAxisID:'y1',order:1,fill:true},
+        {label:'CPL (\u20AC)',data:monthly.map(m=>m.leads?m.spend/m.leads:0),type:'line',borderColor:'#e05555',backgroundColor:'transparent',pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#e05555',borderWidth:2,borderDash:[6,3],tension:0.3,yAxisID:'y1',order:2}
       ]
     },
     options:{
@@ -925,8 +925,7 @@ function renderEvolution(){
       plugins:{legend:{position:'top'}},
       scales:{
         y:{position:'left',title:{display:true,text:'D\u00e9penses (\u20AC)'},beginAtZero:true},
-        y2:{position:'left',display:false,beginAtZero:true},
-        y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'CPL (\u20AC)'},beginAtZero:true}
+        y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Leads / CPL'},beginAtZero:true}
       }
     }
   });
