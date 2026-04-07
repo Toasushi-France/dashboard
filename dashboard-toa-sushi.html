@@ -106,6 +106,20 @@ h1,h2,h3,h4,h5,h6{font-family:'Montserrat',sans-serif}
 .chart-card.full{grid-column:1/-1}
 .charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
 @media(max-width:900px){.charts-2col{grid-template-columns:1fr}}
+.insight-title{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.insight-title .badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600}
+.insight-title .badge-green{background:rgba(63,191,94,0.12);color:var(--green)}
+.insight-title .badge-red{background:rgba(224,85,85,0.12);color:var(--red)}
+.insight-rank{display:flex;flex-direction:column;gap:10px}
+.insight-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:rgba(45,90,39,0.04);border:1px solid rgba(45,90,39,0.06);transition:all .2s}
+.insight-item:hover{background:rgba(45,90,39,0.08);border-color:rgba(45,90,39,0.15)}
+.insight-pos{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;color:var(--accent);min-width:28px;text-align:center}
+.insight-info{flex:1;min-width:0}
+.insight-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.insight-meta{font-size:10.5px;color:var(--text2);margin-top:2px}
+.insight-val{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:700;text-align:right;min-width:70px}
+.insight-bar{height:4px;border-radius:2px;background:rgba(45,90,39,0.1);margin-top:6px;overflow:hidden}
+.insight-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
 .chart-title{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px}
 .chart-wrap{position:relative;height:280px}
 .chart-wrap.short{height:220px}
@@ -282,8 +296,8 @@ tbody tr:hover{background:var(--card-hover)}
       <div class="section-title">Toutes les audiences <span class="line"></span></div>
       <div class="table-wrap"><div class="table-scroll"><table id="tableAdSetsLeads"><thead></thead><tbody></tbody></table></div></div>
       <div class="charts-2col" style="margin-top:32px">
-        <div class="chart-card"><div class="chart-title">R&eacute;partition budget par audience</div><div class="donut-wrap"><canvas id="chartAudBudget"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">CTR par audience</div><div class="chart-wrap tall"><canvas id="chartAudCTR"></canvas></div></div>
+        <div class="chart-card" id="audInsightsLeft"></div>
+        <div class="chart-card" id="audInsightsRight"></div>
       </div>
     </div>
 
@@ -853,40 +867,37 @@ function renderAudiences(){
   ];
   renderSortableTable('tableAdSetsLeads',cols,[...adsets],'leads',true);
 
-  // Budget donut by audience (top 10 by spend)
-  destroyChart('audBudget');
-  var topSpend=[...adsets].sort((a,b)=>b.spend-a.spend).slice(0,8);
-  var otherSpend=adsets.slice(8).reduce((s,a)=>s+a.spend,0);
-  var budgetLabels=topSpend.map(a=>a.name.length>25?a.name.slice(0,25)+'...':a.name);
-  var budgetData=topSpend.map(a=>a.spend);
-  if(otherSpend>0){budgetLabels.push('Autres');budgetData.push(otherSpend);}
-  var budgetColors=['#3D7A35','#4A9440','#5BAE4E','#6EC45E','#84D670','#9AE285','#B0EE9A','#C6F5B0','#D4A853'];
-  var budgetEl=document.getElementById('chartAudBudget');
-  if(budgetEl){
-    CHARTS.audBudget=new Chart(budgetEl,{
-      type:'doughnut',
-      data:{labels:budgetLabels,datasets:[{data:budgetData,backgroundColor:budgetColors.slice(0,budgetData.length),borderWidth:0,hoverOffset:8}]},
-      options:{responsive:true,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:function(ctx){var tot=budgetData.reduce((a,b)=>a+b,0);return ctx.label+': '+fmtEur(ctx.raw,2)+' ('+((ctx.raw/tot)*100).toFixed(1)+'%)'}}}}}
+  // LEFT: Top audiences by spend (ranking cards)
+  var leftEl=document.getElementById('audInsightsLeft');
+  if(leftEl){
+    var topBySpend=[...adsets].sort((a,b)=>b.spend-a.spend).slice(0,5);
+    var maxSpend=topBySpend.length?topBySpend[0].spend:1;
+    var html='<div class="insight-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Top audiences par budget <span class="badge badge-green">Top 5</span></div><div class="insight-rank">';
+    topBySpend.forEach(function(a,i){
+      var pct=maxSpend?(a.spend/maxSpend*100):0;
+      var shortName=a.name.replace(/TOA Sushi_LeadGenFranchise_META_\d{4}_?v?\d?_?/gi,'').replace(/Toa Sushi_\w+_\w+_\d{4}_?/gi,'');
+      if(!shortName)shortName=a.name;
+      html+='<div class="insight-item"><div class="insight-pos">#'+(i+1)+'</div><div class="insight-info"><div class="insight-name" title="'+a.name+'">'+shortName+'</div><div class="insight-meta">'+fmtNum(a.impressions)+' imp \u00b7 '+fmtNum(a.clicks)+' clics \u00b7 '+a.leads+' leads</div><div class="insight-bar"><div class="insight-bar-fill" style="width:'+pct+'%;background:var(--primary-light)"></div></div></div><div class="insight-val">'+fmtEur(a.spend,0)+'</div></div>';
     });
+    html+='</div>';
+    leftEl.innerHTML=html;
   }
 
-  // CTR by audience (horizontal bar, all audiences sorted by CTR)
-  destroyChart('audCTR');
-  var sortedCTR=[...adsets].filter(a=>a.impressions>100).sort((a,b)=>b.ctr-a.ctr).slice(0,12);
-  var ctrEl=document.getElementById('chartAudCTR');
-  if(ctrEl&&sortedCTR.length){
-    CHARTS.audCTR=new Chart(ctrEl,{
-      type:'bar',
-      data:{
-        labels:sortedCTR.map(a=>a.name.length>30?a.name.slice(0,30)+'...':a.name),
-        datasets:[{label:'CTR (%)',data:sortedCTR.map(a=>a.ctr),backgroundColor:sortedCTR.map(a=>a.ctr>=1?'rgba(63,191,94,0.6)':a.ctr>=0.5?'rgba(212,168,83,0.6)':'rgba(224,85,85,0.6)'),borderWidth:0,borderRadius:4}]
-      },
-      options:{
-        indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:function(ctx){var a=sortedCTR[ctx.dataIndex];return 'Imp: '+fmtNum(a.impressions)+' | Clics: '+fmtNum(a.clicks)}}}},
-        scales:{x:{title:{display:true,text:'CTR (%)'},beginAtZero:true},y:{ticks:{font:{size:9}}}}
-      }
+  // RIGHT: Top audiences by CTR (ranking cards)
+  var rightEl=document.getElementById('audInsightsRight');
+  if(rightEl){
+    var topByCTR=[...adsets].filter(a=>a.impressions>200).sort((a,b)=>b.ctr-a.ctr).slice(0,5);
+    var maxCTR=topByCTR.length?topByCTR[0].ctr:1;
+    var html2='<div class="insight-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Meilleures audiences par CTR <span class="badge badge-green">Top 5</span></div><div class="insight-rank">';
+    topByCTR.forEach(function(a,i){
+      var pct=maxCTR?(a.ctr/maxCTR*100):0;
+      var color=a.ctr>=1.5?'var(--green)':a.ctr>=0.8?'var(--accent)':'var(--red)';
+      var shortName=a.name.replace(/TOA Sushi_LeadGenFranchise_META_\d{4}_?v?\d?_?/gi,'').replace(/Toa Sushi_\w+_\w+_\d{4}_?/gi,'');
+      if(!shortName)shortName=a.name;
+      html2+='<div class="insight-item"><div class="insight-pos">#'+(i+1)+'</div><div class="insight-info"><div class="insight-name" title="'+a.name+'">'+shortName+'</div><div class="insight-meta">'+fmtNum(a.impressions)+' imp \u00b7 '+fmtNum(a.clicks)+' clics \u00b7 '+fmtEur(a.spend,0)+'</div><div class="insight-bar"><div class="insight-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div></div><div class="insight-val" style="color:'+color+'">'+fmtPct(a.ctr,2)+'</div></div>';
     });
+    html2+='</div>';
+    rightEl.innerHTML=html2;
   }
 }
 
