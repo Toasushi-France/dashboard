@@ -351,6 +351,7 @@ function fmtEur(n,d=0){return fmtNum(n,d)+' \u20AC'}
 function fmtPct(n,d=2){return fmtNum(n,d)+' %'}
 
 function parseCSV(text){
+  text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   const lines=[];let cur='',inQ=false;
   for(let i=0;i<text.length;i++){
     const c=text[i];
