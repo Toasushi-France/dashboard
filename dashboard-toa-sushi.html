@@ -276,11 +276,10 @@ tbody tr:hover{background:var(--card-hover)}
 
     <!-- PAGE 2 -->
     <div class="page" id="page-audiences" style="display:none">
-      <div class="section-title">Top audiences par Leads <span class="line"></span></div>
+      <div class="kpi-grid" id="audKpis"></div>
+      <div class="section-title">Toutes les audiences <span class="line"></span></div>
       <div class="table-wrap"><div class="table-scroll"><table id="tableAdSetsLeads"><thead></thead><tbody></tbody></table></div></div>
-      <div class="section-title">Top audiences par CPL <span class="line"></span></div>
-      <div class="table-wrap"><div class="table-scroll"><table id="tableAdSetsCPL"><thead></thead><tbody></tbody></table></div></div>
-      <div class="section-title">CPL par audience <span class="line"></span></div>
+      <div class="section-title" style="margin-top:32px">CPL par audience (avec leads) <span class="line"></span></div>
       <div class="chart-card full"><div class="chart-wrap tall"><canvas id="chartCPLAudience"></canvas></div></div>
     </div>
 
@@ -821,13 +820,17 @@ function renderOverview(){
 
 /* ========== PAGE 2: AUDIENCES ========== */
 function renderAudiences(){
-  const adsets=aggByAdSet(FILTERED).map(a=>({...a,ctr:a.impressions?(a.clicks/a.impressions*100):0,cpl:a.leads?(a.spend/a.leads):9999}));
+  const adsets=aggByAdSet(FILTERED).map(a=>({...a,ctr:a.impressions?(a.clicks/a.impressions*100):0,cpl:a.leads?(a.spend/a.leads):0}));
   const withLeads=adsets.filter(a=>a.leads>0);
+  var totalAud=adsets.length,audWithL=withLeads.length;
+  var bestCPL=withLeads.length?Math.min(...withLeads.map(a=>a.cpl)):0;
+  var bestAud=withLeads.length?withLeads.reduce((a,b)=>a.cpl<b.cpl?a:b).name:'\u2014';
+  var ak=document.getElementById('audKpis');
+  if(ak)ak.innerHTML='<div class="kpi-card"><div class="kpi-label">Audiences actives</div><div class="kpi-value">'+totalAud+'</div></div><div class="kpi-card"><div class="kpi-label">Avec leads</div><div class="kpi-value">'+audWithL+'</div></div><div class="kpi-card"><div class="kpi-label">Meilleur CPL</div><div class="kpi-value" style="color:'+(bestCPL<50?'var(--green)':bestCPL<100?'var(--orange)':'var(--red)')+'">'+fmtEur(bestCPL,2)+'</div></div><div class="kpi-card"><div class="kpi-label">Meilleure audience</div><div class="kpi-value" style="font-size:13px">'+(bestAud.length>35?bestAud.slice(0,35)+'...':bestAud)+'</div></div>';
   const cols=[
-    {key:'name',label:'Audience'},{key:'campaign',label:'Campagne'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'clicks',label:'Clics',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>'}
+    {key:'name',label:'Audience'},{key:'campaign',label:'Campagne'},{key:'spend',label:'D\u00e9penses',fmt:v=>fmtEur(v,2)},{key:'impressions',label:'Impressions',fmt:v=>fmtNum(v)},{key:'clicks',label:'Clics',fmt:v=>fmtNum(v)},{key:'ctr',label:'CTR',fmt:v=>fmtPct(v,2)},{key:'leads',label:'Leads',fmt:v=>fmtNum(v)},{key:'cpl',label:'CPL',fmt:v=>v>0?'<span class="cpl-badge '+cplClass(v)+'">'+fmtEur(v,2)+'</span>':'\u2014'}
   ];
-  renderSortableTable('tableAdSetsLeads',cols,[...withLeads],'leads',true);
-  renderSortableTable('tableAdSetsCPL',cols,[...withLeads],'cpl',false);
+  renderSortableTable('tableAdSetsLeads',cols,[...adsets],'leads',true);
 
   // Horizontal bar chart CPL
   const sorted=[...withLeads].sort((a,b)=>a.cpl-b.cpl);
