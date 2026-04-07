@@ -835,7 +835,9 @@ function renderAudiences(){
   // Horizontal bar chart CPL
   const sorted=[...withLeads].sort((a,b)=>a.cpl-b.cpl);
   destroyChart('cplAudience');
-  const ctx=document.getElementById('chartCPLAudience').getContext('2d');
+  var cplEl=document.getElementById('chartCPLAudience');
+  if(!cplEl||!sorted.length){console.log('[TOA] CPL chart: no data or no canvas',!!cplEl,sorted.length);return}
+  const ctx=cplEl.getContext('2d');
   CHARTS.cplAudience=new Chart(ctx,{
     type:'bar',
     data:{
