@@ -417,18 +417,38 @@ async function loadData(){
     RAW_DATA=parseCSV(text);
     console.log('[TOA] Parsed rows:',RAW_DATA.length);
     if(RAW_DATA.length>0){console.log('[TOA] Headers:',Object.keys(RAW_DATA[0]));console.log('[TOA] Row 0:',JSON.stringify(RAW_DATA[0]));console.log('[TOA] Spend key test:',RAW_DATA[0]['Coût (EUR)'],'|',RAW_DATA[0]['Co\u00fbt (EUR)']);}
+    // Map headers flexibly (avoid encoding issues with accented chars)
+    var hk={};
+    if(RAW_DATA.length>0){
+      var keys=Object.keys(RAW_DATA[0]);
+      function findKey(patterns){for(var p of patterns){var k=keys.find(k=>k.toLowerCase().includes(p.toLowerCase()));if(k)return k;}return null;}
+      hk.date=findKey(['Date'])||'Date';
+      hk.spend=findKey(['EUR','Co\u00fbt (EUR)','Cout (EUR)','Coût'])||keys[5]||'';
+      hk.impressions=findKey(['Impressions'])||'Impressions';
+      hk.clicks=findKey(['Clics sur les liens','liens'])||keys[6]||'';
+      hk.allClicks=findKey(['Clics (tous)','(tous)'])||keys[4]||'';
+      hk.leads=findKey(['Prospects sur Facebook','Prospects'])||keys[8]||'';
+      hk.cpl=findKey(['par prospect','Co\u00fbt par prospect'])||keys[9]||'';
+      hk.campaign=findKey(['Nom de la campagne','campagne'])||keys[0]||'';
+      hk.adset=findKey(['ensemble de publicit','Ad set','adset'])||keys[2]||'';
+      console.log('[TOA] Header mapping:',JSON.stringify(hk));
+    }
     RAW_DATA.forEach(r=>{
-      r._date=parseDate(r['Date']);
-      r._spend=pN(r['Co\u00fbt (EUR)']);
-      r._impressions=pN(r['Impressions']);
-      r._clicks=pN(r['Clics sur les liens']);
-      r._allClicks=pN(r['Clics (tous)']);
-      r._leads=pN(r['Prospects sur Facebook']);
-      r._cpl=pN(r['Co\u00fbt par prospect sur Facebook']);
-      r._campaign=r['Nom de la campagne']||'';
-      r._adset=r["Nom de l'ensemble de publicit\u00e9s"]||'';
+      r._date=parseDate(r[hk.date]);
+      r._spend=pN(r[hk.spend]);
+      r._impressions=pN(r[hk.impressions]);
+      r._clicks=pN(r[hk.clicks]);
+      r._allClicks=pN(r[hk.allClicks]);
+      r._leads=pN(r[hk.leads]);
+      r._cpl=pN(r[hk.cpl]);
+      r._campaign=r[hk.campaign]||'';
+      r._adset=r[hk.adset]||'';
       r._type=getCampaignType(r._campaign);
     });
+    // Debug first row
+    if(RAW_DATA.length>0){var r0=RAW_DATA[0];console.log('[TOA] First row: spend='+r0._spend+' imp='+r0._impressions+' leads='+r0._leads+' campaign='+r0._campaign);}
+    var totS=RAW_DATA.reduce((s,r)=>s+r._spend,0);
+    console.log('[TOA] Total raw spend:',totS.toFixed(2));
     RAW_DATA=RAW_DATA.filter(r=>r._date);
     RAW_DATA.sort((a,b)=>a._date-b._date);
     document.getElementById('shimmerLoading').style.display='none';
