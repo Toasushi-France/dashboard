@@ -215,17 +215,19 @@ tbody tr:hover{background:var(--card-hover)}
   </div>
   <div class="sidebar-subtitle">Dashboard Franchise</div>
   <nav class="sidebar-nav">
+    <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:2px;padding:8px 16px 6px;opacity:.5">Tableau de bord</div>
     <div class="nav-item active" data-page="overview" onclick="switchPage('overview')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Vue d'ensemble</span>
     </div>
-    <div class="nav-item" data-page="audiences" onclick="switchPage('audiences')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      <span>Audiences</span>
-    </div>
     <div class="nav-item" data-page="evolution" onclick="switchPage('evolution')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span>Evolution &amp; Bilan</span>
+      <span>&Eacute;volution &amp; Bilan</span>
+    </div>
+    <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:2px;padding:14px 16px 6px;opacity:.5">Canaux</div>
+    <div class="nav-item" data-page="audiences" onclick="switchPage('audiences')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+      <span>Meta Ads</span>
     </div>
     <div class="nav-item" data-page="gads" onclick="switchPage('gads')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -626,7 +628,7 @@ function switchPage(page){
   document.querySelectorAll('.page').forEach(p=>{p.style.display='none';p.classList.remove('active')});
   const el=document.getElementById('page-'+page);
   if(el){el.style.display='block';setTimeout(()=>el.classList.add('active'),10);}
-  const titles={overview:"Vue d'ensemble",audiences:'Audiences',evolution:"\u00C9volution & Bilan",gads:'Google Ads'};
+  const titles={overview:"Vue d'ensemble",audiences:'Meta Ads',evolution:"\u00C9volution & Bilan",gads:'Google Ads'};
   document.getElementById('breadcrumb').textContent=titles[page]||page;
   renderAll();
 }
