@@ -227,6 +227,10 @@ tbody tr:hover{background:var(--card-hover)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span>Evolution &amp; Bilan</span>
     </div>
+    <div class="nav-item" data-page="gads" onclick="switchPage('gads')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span>Google Ads</span>
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div class="agency">TOA Sushi &copy; 2026</div>
@@ -322,6 +326,16 @@ tbody tr:hover{background:var(--card-hover)}
         <div class="commentary-editor" id="commentEditor" contenteditable="true" placeholder="Ajoutez vos commentaires ici..."></div>
       </div>
     </div>
+
+    <!-- PAGE 4: GOOGLE ADS -->
+    <div class="page" id="page-gads" style="display:none">
+      <div class="section-title">Google Ads <span class="line"></span></div>
+      <div class="kpi-grid" id="gadsKpis"></div>
+      <div class="section-title" style="margin-top:32px">Performance par groupe d'annonces <span class="line"></span></div>
+      <div class="table-wrap"><div class="table-scroll"><table id="tableGads"><thead></thead><tbody></tbody></table></div></div>
+      <div class="section-title" style="margin-top:32px">D&eacute;penses &amp; Clics quotidiens <span class="line"></span></div>
+      <div class="chart-card"><div class="chart-wrap"><canvas id="chartGads"></canvas></div></div>
+    </div>
   </div>
 </div>
 
@@ -355,12 +369,14 @@ tbody tr:hover{background:var(--card-hover)}
 /* ========== GLOBALS ========== */
 let RAW_DATA = [];
 let FILTERED = [];
+let RAW_GADS=[], filteredGads=[];
 let CURRENT_PAGE = 'overview';
 let CURRENT_RANGE = 'all';
 let CURRENT_YEAR = null;
 let CUSTOM_START = null, CUSTOM_END = null;
 let CHARTS = {};
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRiWc8yPpg7phWPVu5gl2kvhvtGyldz8reMO5MX6PbGz7iAtirz35vlJtez3JQgtO4Km0LMO6OOmn_9/pub?output=csv&single=true&gid=2095849632';
+const GADS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRiWc8yPpg7phWPVu5gl2kvhvtGyldz8reMO5MX6PbGz7iAtirz35vlJtez3JQgtO4Km0LMO6OOmn_9/pub?output=csv&single=true&gid=172735651';
 
 /* ========== PARSE HELPERS ========== */
 function pN(v){if(!v||v==='')return 0;return parseFloat(String(v).replace(/"/g,'').replace(',','.').replace(/\s/g,''))||0}
@@ -464,10 +480,28 @@ async function loadData(){
     console.log('[TOA] Total raw spend:',totS.toFixed(2));
     RAW_DATA=RAW_DATA.filter(r=>r._date);
     RAW_DATA.sort((a,b)=>a._date-b._date);
+    // Fetch Google Ads
+    try{
+      const gRes=await fetch(GADS_URL);
+      const gText=await gRes.text();
+      RAW_GADS=parseCSV(gText);
+      console.log('[TOA] Google Ads rows:',RAW_GADS.length);
+      RAW_GADS.forEach(r=>{
+        r._date=parseDate(r['Date']);
+        r._spend=pN(r['Coût (EUR)']);
+        r._impressions=pN(r['Impressions']);
+        r._clicks=pN(r['Clics']);
+        r._conv=pN(r['Conversions']);
+        r._cpc=pN(r['CPC']);
+        r._campaign=r['Nom de la campagne']||'';
+        r._adgroup=r["Nom du groupe d'annonces"]||'';
+      });
+      RAW_GADS=RAW_GADS.filter(r=>r._date);
+    }catch(e){console.warn('[TOA] Google Ads error:',e)}
     document.getElementById('shimmerLoading').style.display='none';
     applyFilters();
     var hash=window.location.hash.replace('#','');
-    var initPage=(['overview','audiences','evolution'].indexOf(hash)!==-1)?hash:'overview';
+    var initPage=(['overview','audiences','evolution','gads'].indexOf(hash)!==-1)?hash:'overview';
     switchPage(initPage);
   }catch(e){
     console.error('[TOA] Load error:',e);
@@ -519,6 +553,7 @@ function applyFilters(){
   }
 
   FILTERED=data;
+  filteredGads=RAW_GADS.filter(r=>(!startDate||!endDate)||(r._date>=startDate&&r._date<=endDate));
   console.log('[TOA] Filtered rows:',FILTERED.length);
   updateStatusBanner();
   renderAll();
@@ -591,7 +626,7 @@ function switchPage(page){
   document.querySelectorAll('.page').forEach(p=>{p.style.display='none';p.classList.remove('active')});
   const el=document.getElementById('page-'+page);
   if(el){el.style.display='block';setTimeout(()=>el.classList.add('active'),10);}
-  const titles={overview:"Vue d'ensemble",audiences:'Audiences',evolution:"\u00C9volution & Bilan"};
+  const titles={overview:"Vue d'ensemble",audiences:'Audiences',evolution:"\u00C9volution & Bilan",gads:'Google Ads'};
   document.getElementById('breadcrumb').textContent=titles[page]||page;
   renderAll();
 }
@@ -683,10 +718,11 @@ function getPreviousPeriodData(){
 
 /* ========== RENDER ALL ========== */
 function renderAll(){
-  if(!FILTERED.length)return;
+  if(!FILTERED.length&&!filteredGads.length)return;
   if(CURRENT_PAGE==='overview')renderOverview();
   if(CURRENT_PAGE==='audiences')renderAudiences();
   if(CURRENT_PAGE==='evolution')renderEvolution();
+  if(CURRENT_PAGE==='gads')renderGads();
 }
 
 /* ========== CHART DEFAULTS ========== */
@@ -729,7 +765,9 @@ function createSparkline(container,data,color){
 
 /* ========== PAGE 1: OVERVIEW ========== */
 function renderOverview(){
-  const totSpend=FILTERED.reduce((s,r)=>s+r._spend,0);
+  const metaSpend=FILTERED.reduce((s,r)=>s+r._spend,0);
+  const gadsSpend=filteredGads.reduce((s,r)=>s+r._spend,0);
+  const totSpend=metaSpend+gadsSpend;
   const totLeads=FILTERED.reduce((s,r)=>s+r._leads,0);
   const totImpr=FILTERED.reduce((s,r)=>s+r._impressions,0);
   const totClicks=FILTERED.reduce((s,r)=>s+r._clicks,0);
@@ -826,9 +864,11 @@ function renderOverview(){
     }
   });
 
-  // Donut
+  // Donut (include Google Ads)
   const byType=aggByType(FILTERED);
-  const typeColors={'Lead Gen':'#3D7A35','Engagement':'#D4A853','Notori\u00e9t\u00e9':'#5B9BD5','Trafic':'#E07040','Autre':'#888'};
+  var gadsSpendTotal=filteredGads.reduce((s,r)=>s+r._spend,0);
+  if(gadsSpendTotal>0)byType.push({type:'Google Ads',spend:gadsSpendTotal,leads:0});
+  const typeColors={'Lead Gen':'#3D7A35','Engagement':'#D4A853','Notori\u00e9t\u00e9':'#5B9BD5','Trafic':'#E07040','Google Ads':'#34A853','Autre':'#888'};
   destroyChart('donut');
   const ctx3=document.getElementById('chartDonut').getContext('2d');
   CHARTS.donut=new Chart(ctx3,{
@@ -1070,10 +1110,86 @@ function exportCSV(){
   a.click();
 }
 
+/* ========== PAGE 4: GOOGLE ADS ========== */
+function renderGads(){
+  if(!filteredGads.length){
+    document.getElementById('gadsKpis').innerHTML='<div style="color:var(--text2);font-size:13px;padding:20px">Aucune donn\u00e9e Google Ads pour cette p\u00e9riode</div>';
+    return;
+  }
+  var spend=filteredGads.reduce((s,r)=>s+r._spend,0);
+  var clicks=filteredGads.reduce((s,r)=>s+r._clicks,0);
+  var imp=filteredGads.reduce((s,r)=>s+r._impressions,0);
+  var conv=filteredGads.reduce((s,r)=>s+r._conv,0);
+  var ctr=imp>0?(clicks/imp*100):0;
+  var cpc=clicks>0?spend/clicks:0;
+  var cpa=conv>0?spend/conv:0;
+
+  var gadsKpis=document.getElementById('gadsKpis');
+  gadsKpis.innerHTML=
+    '<div class="kpi-card"><div class="kpi-label">D\u00e9penses</div><div class="kpi-value">'+fmtEur(spend,2)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Clics</div><div class="kpi-value">'+fmtNum(clicks)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Impressions</div><div class="kpi-value">'+fmtNum(imp)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">CTR</div><div class="kpi-value">'+fmtPct(ctr,2)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">CPC</div><div class="kpi-value">'+fmtEur(cpc,2)+'</div></div>'+
+    '<div class="kpi-card"><div class="kpi-label">Conversions</div><div class="kpi-value">'+fmtNum(conv)+'</div></div>';
+
+  // Table by ad group
+  var groups={};
+  filteredGads.forEach(function(r){
+    var g=r._adgroup||r._campaign;
+    if(!groups[g])groups[g]={spend:0,imp:0,clicks:0,conv:0};
+    groups[g].spend+=r._spend;groups[g].imp+=r._impressions;groups[g].clicks+=r._clicks;groups[g].conv+=r._conv;
+  });
+  var cols=[
+    {key:'name',label:'Groupe d\'annonces'},
+    {key:'spend',label:'D\u00e9penses',fmt:function(v){return fmtEur(v,2)}},
+    {key:'imp',label:'Impressions',fmt:function(v){return fmtNum(v)}},
+    {key:'clicks',label:'Clics',fmt:function(v){return fmtNum(v)}},
+    {key:'ctr',label:'CTR',fmt:function(v){return fmtPct(v,2)}},
+    {key:'cpc',label:'CPC',fmt:function(v){return fmtEur(v,2)}},
+    {key:'conv',label:'Conv.',fmt:function(v){return fmtNum(v)}}
+  ];
+  var rows=Object.entries(groups).map(function(e){
+    return{name:e[0],spend:e[1].spend,imp:e[1].imp,clicks:e[1].clicks,
+      ctr:e[1].imp>0?(e[1].clicks/e[1].imp*100):0,
+      cpc:e[1].clicks>0?e[1].spend/e[1].clicks:0,
+      conv:e[1].conv};
+  });
+  renderSortableTable('tableGads',cols,rows,'spend',true);
+
+  // Daily chart
+  destroyChart('gadsDaily');
+  var daily={};
+  filteredGads.forEach(function(r){
+    var k=r._date.toISOString().slice(0,10);
+    if(!daily[k])daily[k]={spend:0,clicks:0};
+    daily[k].spend+=r._spend;daily[k].clicks+=r._clicks;
+  });
+  var days=Object.keys(daily).sort();
+  var ctx=document.getElementById('chartGads');
+  if(ctx){
+    CHARTS.gadsDaily=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:days.map(function(d){return d.slice(5)}),
+        datasets:[
+          {label:'D\u00e9penses (\u20AC)',data:days.map(function(d){return daily[d].spend}),backgroundColor:'rgba(52,168,83,0.5)',borderRadius:4,yAxisID:'y'},
+          {label:'Clics',data:days.map(function(d){return daily[d].clicks}),type:'line',borderColor:'#2D5A27',borderWidth:2,pointRadius:2,tension:0.3,yAxisID:'y1'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{position:'top'}},
+        scales:{y:{position:'left',title:{display:true,text:'D\u00e9penses (\u20AC)'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Clics'}}}
+      }
+    });
+  }
+}
+
 /* ========== HASH NAVIGATION ========== */
 window.addEventListener('hashchange', function(){
   var hash = window.location.hash.replace('#','');
-  if(hash && ['overview','audiences','evolution'].indexOf(hash) !== -1){
+  if(hash && ['overview','audiences','evolution','gads'].indexOf(hash) !== -1){
     switchPage(hash);
   }
 });
