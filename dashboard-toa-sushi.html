@@ -364,6 +364,7 @@ var COLUMN_ALIASES={
 'CPM (coût pour 1000 impressions)':'CPM',
 'Prospects sur Facebook':'Facebook leads',
 'Coût par prospect sur Facebook':'Cost per lead',
+'Cost per on-Facebook lead':'Cost per lead',
 'J\'aime la page':'Page likes',
 'Commentaires sur les publications':'Post comments',
 'Réactions aux publications':'Post reactions',
@@ -393,6 +394,22 @@ for(var k in sample){if(COLUMN_ALIASES[k]){needsNorm=true;break;}}
 if(!needsNorm)return rows;
 return rows.map(normalizeRow);
 }
+var _missingCols={};
+function safeCol(row,col){
+  if(row && col in row) return row[col];
+  if(!_missingCols[col]){_missingCols[col]=true;console.warn('⚠️ Colonne manquante: '+col)}
+  return '';
+}
+function showMissingWarning(){
+  var cols=Object.keys(_missingCols);
+  if(!cols.length)return;
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;right:0;padding:8px 16px;background:#f59e0b;color:#000;font:13px/1.4 sans-serif;text-align:center;z-index:99999;';
+  d.textContent='⚠️ '+cols.length+' colonne(s) manquante(s) dans les donn\u00e9es : '+cols.join(', ');
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove()},15000);
+}
+
 
 function parseCSV(text){
   const lines=[];let cur='',inQ=false;
@@ -475,6 +492,7 @@ async function loadData(){
     RAW_DATA.sort((a,b)=>a._date-b._date);
     document.getElementById('shimmerLoading').style.display='none';
     applyFilters();
+    showMissingWarning();
     var hash=window.location.hash.replace('#','');
     var initPage=(['overview','audiences','evolution'].indexOf(hash)!==-1)?hash:'overview';
     switchPage(initPage);
